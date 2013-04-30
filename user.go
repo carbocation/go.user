@@ -18,6 +18,10 @@ type User struct {
 	PlaintextPassword string "Plaintext password. Not stored in the database; used for logging in."
 }
 
+func (u *User) GetId() int64 {
+	return u.Id
+}
+
 func (u *User) Guest() bool {
 	if u.Id == 0 {
 		return true
