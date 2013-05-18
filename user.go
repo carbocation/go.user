@@ -122,10 +122,10 @@ func FindOneByHandle(handle string) (user *User, err error) {
 
 	//Find one or zero existent users
 	FindUserStmt, err := db.Prepare(queries.UserFindByHandle)
+	defer FindUserStmt.Close()
 	if err != nil {
 		return
 	}
-	defer FindUserStmt.Close()
 
 	//Read any found values into the user object
 	err = FindUserStmt.QueryRow(handle).Scan(&user.Id, &user.Handle, &user.Email, &user.Password, &user.Created)
@@ -147,10 +147,10 @@ func FindOneUserById(id int64) (user *User, err error) {
 
 	//Find one or zero existent users
 	FindUserStmt, err := db.Prepare(queries.UserFindById)
+	defer FindUserStmt.Close()
 	if err != nil {
 		return
 	}
-	defer FindUserStmt.Close()
 
 	//Read any found values into the user object
 	err = FindUserStmt.QueryRow(id).Scan(&user.Id, &user.Handle, &user.Email, &user.Password, &user.Created)
