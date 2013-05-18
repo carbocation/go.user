@@ -44,38 +44,37 @@ func (u *User) Register() (err error) {
 	return
 }
 
-func (u *User) createInDb() (err error) {
+func (u *User) createInDb() error {
 	//Wrap in a transaction
 	tx, err := db.Begin()
 
 	CreateUserStmt, err := tx.Prepare(queries.UserCreate)
-	defer CreateUserStmt.Close()
 	if err != nil {
-		_ = tx.Rollback()
+		tx.Rollback()
 		return errors.New("Error: We had a database problem.")
 	}
+	defer CreateUserStmt.Close()
 
 	//Note: because pq handles LastInsertId oddly (or not at all?), instead of 
 	//calling .Exec() then .LastInsertId, we prepare a statement that ends in 
 	//`RETURNING id` and we .QueryRow().Select() the result  
 	err = CreateUserStmt.QueryRow(u.Handle, u.Email, u.Password).Scan(&u.Id)
 	if err != nil {
-		_ = tx.Rollback()
+		tx.Rollback()
 		return errors.New("Error: your username or email address was already found in the database. Please choose differently.")
 	}
 
 	//Declare transactional victory
 	tx.Commit()
 
-	return
+	return nil
 }
 
 //SetPassword takes a plaintext password and hashes it with bcrypt and sets the
 //password field to the hash.
-func (u *User) SetPassword(password string) (err error) {
+func (u *User) SetPassword(password string) error {
 	if len(password) < 1 {
-		err = errors.New("Error: no password was provided.")
-		return
+		return errors.New("Error: no password was provided.")
 	}
 
 	hpass, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -84,11 +83,11 @@ func (u *User) SetPassword(password string) (err error) {
 	u.PlaintextPassword = ""
 
 	if err != nil {
-		return
+		return err
 	}
 	u.Password = string(hpass)
 
-	return
+	return nil
 }
 
 //If a login checks out, return a new user object
@@ -122,10 +121,10 @@ func FindOneByHandle(handle string) (user *User, err error) {
 
 	//Find one or zero existent users
 	FindUserStmt, err := db.Prepare(queries.UserFindByHandle)
-	defer FindUserStmt.Close()
 	if err != nil {
 		return
 	}
+	defer FindUserStmt.Close()
 
 	//Read any found values into the user object
 	err = FindUserStmt.QueryRow(handle).Scan(&user.Id, &user.Handle, &user.Email, &user.Password, &user.Created)
@@ -147,10 +146,10 @@ func FindOneUserById(id int64) (user *User, err error) {
 
 	//Find one or zero existent users
 	FindUserStmt, err := db.Prepare(queries.UserFindById)
-	defer FindUserStmt.Close()
 	if err != nil {
 		return
 	}
+	defer FindUserStmt.Close()
 
 	//Read any found values into the user object
 	err = FindUserStmt.QueryRow(id).Scan(&user.Id, &user.Handle, &user.Email, &user.Password, &user.Created)
